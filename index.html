@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalima - لعبة الكلمة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            overflow: hidden;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #4A00E0, #8E2DE2);
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 1.2rem;
+        }
+        .timer-bar {
+            transition: width 1s linear;
+        }
+        .eliminated {
+            opacity: 0.4;
+            text-decoration: line-through;
+        }
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="gradient-bg text-white antialiased">
+
+    <!-- Main Container -->
+    <div id="app" class="h-screen w-screen flex flex-col items-center justify-center p-4 transition-opacity duration-500">
+
+        <!-- Loading Spinner -->
+        <div id="loader" class="text-center">
+            <svg class="animate-spin h-10 w-10 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-lg">جاري الاتصال...</p>
+        </div>
+
+        <!-- Home Screen -->
+        <div id="homeScreen" class="hidden text-center">
+            <h1 class="text-6xl font-bold mb-2">كلمة</h1>
+            <p class="text-xl mb-8 text-purple-200">لعبة سرعة البديهة والتركيز</p>
+            <div class="max-w-md mx-auto">
+                <input id="playerNameInput" type="text" placeholder="أدخل اسمك" class="w-full bg-white/20 placeholder-white/70 text-white text-center rounded-lg px-6 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-white">
+                <button id="createRoomBtn" class="w-full bg-white text-purple-600 font-bold rounded-lg px-8 py-3 text-lg hover:bg-gray-200 transition-colors mb-4">أنشئ لعبة جديدة</button>
+                <div class="flex items-center gap-4">
+                    <input id="joinRoomInput" type="text" placeholder="أدخل رمز الغرفة" class="w-full bg-white/20 placeholder-white/70 text-white text-center rounded-lg px-6 py-3 focus:outline-none focus:ring-2 focus:ring-white">
+                    <button id="joinRoomBtn" class="bg-green-500 text-white font-semibold rounded-lg px-6 py-3 hover:bg-green-600 transition-colors">انضم</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="hidden h-full w-full max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
+
+                <!-- Right Panel (Players & Info) -->
+                <div class="lg:col-span-1 card rounded-xl p-4 flex flex-col order-1 lg:order-3">
+                    <div class="flex justify-between items-center mb-4">
+                         <h2 class="text-2xl font-bold">كلمة</h2>
+                         <button id="leaveRoomBtn" class="bg-red-500/80 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600">مغادرة</button>
+                    </div>
+                    <div class="mb-4">
+                        <p class="text-sm text-purple-200">رمز الغرفة:</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <p id="roomIdDisplay" class="font-mono bg-black/20 px-3 py-1 rounded-md"></p>
+                            <button id="copyRoomIdBtn" class="text-white/70 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold mb-2 text-lg">اللاعبون</h3>
+                    <div id="playerList" class="space-y-3 flex-grow custom-scrollbar overflow-y-auto pr-2">
+                        <!-- Player items will be injected here -->
+                    </div>
+                    <button id="startGameBtn" class="w-full bg-green-500 text-white font-bold rounded-lg py-3 mt-4 hover:bg-green-600 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">ابدأ اللعبة</button>
+                    <button id="playAgainBtn" class="w-full hidden bg-blue-500 text-white font-bold rounded-lg py-3 mt-4 hover:bg-blue-600 transition-colors">العب مجدداً</button>
+                </div>
+
+                <!-- Center Panel (Game Area) -->
+                <div class="lg:col-span-3 card rounded-xl p-6 flex flex-col items-center justify-between order-2">
+                    <!-- Game Header -->
+                    <div id="gameHeader" class="text-center w-full">
+                         <p id="turnInfo" class="text-xl h-7"></p>
+                         <div class="w-full bg-black/20 rounded-full h-2.5 mt-2">
+                            <div id="timerBar" class="bg-green-500 h-2.5 rounded-full timer-bar" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Game Content -->
+                    <div id="gameContent" class="text-center">
+                        <div id="waitingForPlayers" class="text-center">
+                            <h3 class="text-4xl font-bold">في انتظار اللاعبين...</h3>
+                            <p class="text-purple-200 mt-2 text-lg">سيقوم المضيف ببدء اللعبة.</p>
+                        </div>
+
+                        <div id="gameplayArea" class="hidden">
+                            <p class="text-2xl text-purple-200">الفئة</p>
+                            <h2 id="categoryDisplay" class="text-6xl font-bold my-4"></h2>
+                            <div class="relative w-full max-w-md mx-auto">
+                                <input id="wordInput" type="text" placeholder="أدخل كلمتك هنا..." class="w-full text-2xl bg-white/20 placeholder-white/70 text-white text-center rounded-lg px-6 py-4 focus:outline-none focus:ring-2 focus:ring-white disabled:bg-gray-600/50">
+                                <button id="submitWordBtn" class="absolute left-2 top-1/2 -translate-y-1/2 bg-green-500 text-white font-semibold rounded-lg px-5 py-2 hover:bg-green-600 transition-colors disabled:bg-gray-500">أرسل</button>
+                            </div>
+                        </div>
+
+                        <div id="gameOver" class="hidden text-center">
+                            <h3 class="text-5xl font-bold text-yellow-300">انتهت اللعبة!</h3>
+                            <p id="winnerDisplay" class="text-3xl mt-4"></p>
+                        </div>
+                    </div>
+
+                    <!-- Used Words Footer -->
+                    <div id="usedWordsContainer" class="w-full">
+                        <h4 class="text-center mb-2 text-purple-200">الكلمات المستخدمة</h4>
+                        <div id="usedWordsList" class="h-20 bg-black/20 rounded-lg p-2 flex flex-wrap justify-center items-start gap-2 overflow-y-auto custom-scrollbar">
+                           <!-- Used words will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // --- YOUR FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyBQLIKtueG954OYiWz-YDBl_LyUxc_VRT8",
+          authDomain: "el-klika.firebaseapp.com",
+          projectId: "el-klika",
+          storageBucket: "el-klika.appspot.com",
+          messagingSenderId: "357776786294",
+          appId: "1:357776786294:web:8cb4ec7eabe2895a133057",
+          measurementId: "G-0VZ35M4V50"
+        };
+
+        // --- FIREBASE SECURITY RULES REMINDER ---
+        // Make sure to set your Firestore security rules in the Firebase console.
+        // A good starting point is to only allow authenticated users to read/write.
+        /*
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /rooms/{roomId}/{document=**} {
+              allow read, write: if request.auth != null;
+            }
+          }
+        }
+        */
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- DOM ELEMENT REFERENCES ---
+        const loader = document.getElementById('loader');
+        const homeScreen = document.getElementById('homeScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const joinRoomInput = document.getElementById('joinRoomInput');
+        const roomIdDisplay = document.getElementById('roomIdDisplay');
+        const copyRoomIdBtn = document.getElementById('copyRoomIdBtn');
+        const playerList = document.getElementById('playerList');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+        const waitingForPlayers = document.getElementById('waitingForPlayers');
+        const gameplayArea = document.getElementById('gameplayArea');
+        const categoryDisplay = document.getElementById('categoryDisplay');
+        const wordInput = document.getElementById('wordInput');
+        const submitWordBtn = document.getElementById('submitWordBtn');
+        const usedWordsList = document.getElementById('usedWordsList');
+        const turnInfo = document.getElementById('turnInfo');
+        const timerBar = document.getElementById('timerBar');
+        const gameOver = document.getElementById('gameOver');
+        const winnerDisplay = document.getElementById('winnerDisplay');
+
+        // --- FIREBASE & APP STATE ---
+        let app, auth, db;
+        let currentUser = null;
+        let currentRoomId = null;
+        let roomUnsubscribe = null;
+        let localPlayerName = '';
+        let turnTimer = null;
+
+        // --- GAME DATA ---
+        const GAME_CATEGORIES = {
+            "كرة القدم": "لاعبون، فرق، ملاعب...",
+            "حيوانات": "ثدييات، طيور، حشرات...",
+            "دول": "عواصم، قارات، معالم...",
+            "أفلام عربية": "ممثلون، مخرجون، عناوين...",
+            "أكل": "فواكه، خضروات، أطباق...",
+            "مهن": "طبيب، مهندس، معلم...",
+        };
+        const TURN_DURATION = 10000; // 10 seconds
+
+        // --- INITIALIZATION ---
+        function initializeFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        loader.classList.add('hidden');
+                        homeScreen.classList.remove('hidden');
+                    } else {
+                        signInAnonymously(auth).catch(error => {
+                            console.error("Anonymous sign-in failed:", error);
+                            loader.innerHTML = `<p class="text-red-400">فشل المصادقة. يرجى التحقق من إعداد Firebase.</p>`;
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                loader.innerHTML = `<p class="text-red-400">خطأ في تهيئة Firebase.</p>`;
+            }
+        }
+
+        // --- UI UPDATE FUNCTIONS ---
+        const updatePlayerListUI = (players, playerOrder, currentPlayerId) => {
+            playerList.innerHTML = '';
+            const playerArray = Object.values(players).sort((a,b) => {
+                return (playerOrder.indexOf(a.uid) || Infinity) - (playerOrder.indexOf(b.uid) || Infinity);
+            });
+
+            playerArray.forEach(player => {
+                const playerColor = generateColor(player.uid);
+                const isHost = player.isHost;
+                const isYou = player.uid === currentUser.uid;
+                const isCurrent = player.uid === currentPlayerId;
+
+                const playerEl = document.createElement('div');
+                playerEl.className = `flex items-center gap-3 p-2 rounded-lg transition-all duration-300 ${isCurrent ? 'bg-white/20 scale-105' : ''} ${player.isEliminated ? 'eliminated' : ''}`;
+                playerEl.innerHTML = `
+                    <div class="player-avatar" style="background-color: ${playerColor}">
+                        ${player.name.charAt(0)}
+                    </div>
+                    <span class="font-semibold flex-grow">${player.name} ${isYou ? '(أنت)' : ''}</span>
+                    ${isHost ? '<span class="text-xs font-bold text-yellow-300">المضيف</span>' : ''}
+                `;
+                playerList.appendChild(playerEl);
+            });
+        };
+
+        const updateGameUI = (roomData) => {
+            const { status, players, playerOrder, currentTurn, usedWords, category } = roomData;
+            
+            updatePlayerListUI(players, playerOrder, currentTurn?.playerId);
+
+            if (status === 'waiting') {
+                waitingForPlayers.classList.remove('hidden');
+                gameplayArea.classList.add('hidden');
+                gameOver.classList.add('hidden');
+                turnInfo.textContent = '';
+                timerBar.style.width = '100%';
+                timerBar.style.backgroundColor = '#22c55e';
+            } else if (status === 'playing') {
+                waitingForPlayers.classList.add('hidden');
+                gameplayArea.classList.remove('hidden');
+                gameOver.classList.add('hidden');
+
+                categoryDisplay.textContent = category;
+                
+                const currentPlayer = players[currentTurn.playerId];
+                const isMyTurn = currentTurn.playerId === currentUser.uid;
+
+                turnInfo.textContent = `دور ${currentPlayer.name}`;
+                wordInput.disabled = !isMyTurn;
+                submitWordBtn.disabled = !isMyTurn;
+                wordInput.placeholder = isMyTurn ? "دورك الآن!" : `في انتظار ${currentPlayer.name}...`;
+                if(isMyTurn) wordInput.focus();
+
+                updateTimer(currentTurn.startTime);
+
+            } else if (status === 'finished') {
+                waitingForPlayers.classList.add('hidden');
+                gameplayArea.classList.add('hidden');
+                gameOver.classList.remove('hidden');
+                const winner = Object.values(players).find(p => !p.isEliminated);
+                winnerDisplay.textContent = winner ? `الفائز هو ${winner.name}!` : 'لا يوجد فائز!';
+                turnInfo.textContent = 'انتهت الجولة';
+                if(turnTimer) clearInterval(turnTimer);
+            }
+
+            // Update used words list
+            usedWordsList.innerHTML = '';
+            (usedWords || []).forEach(word => {
+                const wordEl = document.createElement('span');
+                wordEl.className = 'bg-black/30 text-white text-sm px-3 py-1 rounded-full';
+                wordEl.textContent = word;
+                usedWordsList.appendChild(wordEl);
+            });
+
+            // Update host buttons
+            const isHost = roomData.hostId === currentUser.uid;
+            startGameBtn.style.display = (isHost && status === 'waiting') ? 'block' : 'none';
+            playAgainBtn.style.display = (isHost && status === 'finished') ? 'block' : 'none';
+            const canStart = Object.keys(players).length >= 2;
+            startGameBtn.disabled = !canStart;
+            startGameBtn.textContent = canStart ? 'ابدأ اللعبة' : 'تحتاج لاعبين أو أكثر';
+        };
+
+        const updateTimer = (startTime) => {
+            if (turnTimer) clearInterval(turnTimer);
+            if (!startTime) return;
+
+            const turnEndTime = startTime.toMillis() + TURN_DURATION;
+
+            turnTimer = setInterval(() => {
+                const now = Date.now();
+                const timeLeft = turnEndTime - now;
+                
+                if (timeLeft <= 0) {
+                    timerBar.style.width = '0%';
+                    clearInterval(turnTimer);
+                    // The player whose turn it was should automatically be eliminated
+                    // This logic is handled on the client side that timed out
+                    if(wordInput.disabled === false) { // If it's my turn and timer ran out
+                        eliminatePlayer(currentUser.uid, "نفذ الوقت");
+                    }
+                } else {
+                    const percentage = (timeLeft / TURN_DURATION) * 100;
+                    timerBar.style.width = `${percentage}%`;
+                    if(percentage < 25) timerBar.style.backgroundColor = '#ef4444'; // red
+                    else if(percentage < 50) timerBar.style.backgroundColor = '#f59e0b'; // amber
+                    else timerBar.style.backgroundColor = '#22c55e'; // green
+                }
+            }, 100);
+        };
+
+        // --- GAME LOGIC FUNCTIONS ---
+        const createRoom = async () => {
+            if (!validatePlayerName()) return;
+
+            const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const roomRef = doc(db, "rooms", roomId);
+            
+            const newPlayer = {
+                uid: currentUser.uid,
+                name: localPlayerName,
+                isHost: true,
+                isEliminated: false,
+            };
+
+            const roomData = {
+                hostId: currentUser.uid,
+                players: { [currentUser.uid]: newPlayer },
+                status: 'waiting', // waiting, playing, finished
+                createdAt: serverTimestamp()
+            };
+
+            await setDoc(roomRef, roomData);
+            await joinRoom(roomId);
+        };
+
+        const joinRoom = async (roomId) => {
+            if (!validatePlayerName()) return;
+
+            currentRoomId = roomId.toUpperCase();
+            const roomRef = doc(db, "rooms", currentRoomId);
+            
+            try {
+                const roomSnap = await getDoc(roomRef);
+                if (!roomSnap.exists()) {
+                    alert("الغرفة غير موجودة!");
+                    return;
+                }
+
+                const roomData = roomSnap.data();
+                if (roomData.status !== 'waiting' && !roomData.players[currentUser.uid]) {
+                    alert("لا يمكنك الانضمام، اللعبة بدأت بالفعل.");
+                    return;
+                }
+
+                const newPlayer = { uid: currentUser.uid, name: localPlayerName, isHost: false, isEliminated: false };
+                await updateDoc(roomRef, { [`players.${currentUser.uid}`]: newPlayer });
+
+                homeScreen.classList.add('hidden');
+                gameScreen.classList.remove('hidden');
+                roomIdDisplay.textContent = currentRoomId;
+
+                listenToRoomUpdates();
+
+            } catch (error) {
+                console.error("Error joining room: ", error);
+                alert("لا يمكن الانضمام للغرفة.");
+            }
+        };
+
+        const listenToRoomUpdates = () => {
+            if (roomUnsubscribe) roomUnsubscribe();
+            const roomRef = doc(db, "rooms", currentRoomId);
+            roomUnsubscribe = onSnapshot(roomRef, (doc) => {
+                if (doc.exists()) {
+                    updateGameUI(doc.data());
+                } else {
+                    alert("المضيف أغلق الغرفة.");
+                    leaveRoom(false); // Don't update firestore since doc is gone
+                }
+            });
+        };
+
+        const leaveRoom = async (updateFirestore = true) => {
+            if (!currentRoomId || !currentUser) return;
+            if (roomUnsubscribe) roomUnsubscribe();
+            roomUnsubscribe = null;
+
+            if (updateFirestore) {
+                const roomRef = doc(db, "rooms", currentRoomId);
+                await runTransaction(db, async (transaction) => {
+                    const roomDoc = await transaction.get(roomRef);
+                    if (!roomDoc.exists()) return;
+                    
+                    const roomData = roomDoc.data();
+                    const newPlayers = { ...roomData.players };
+                    delete newPlayers[currentUser.uid];
+                    
+                    if (Object.keys(newPlayers).length === 0) {
+                        transaction.delete(roomRef); // Delete room if empty
+                    } else {
+                        let newHostId = roomData.hostId;
+                        if (roomData.hostId === currentUser.uid) {
+                            // If host leaves, assign a new host
+                            newHostId = Object.keys(newPlayers)[0];
+                            newPlayers[newHostId].isHost = true;
+                        }
+                        transaction.update(roomRef, { players: newPlayers, hostId: newHostId });
+                    }
+                });
+            }
+            
+            currentRoomId = null;
+            if (turnTimer) clearInterval(turnTimer);
+            gameScreen.classList.add('hidden');
+            homeScreen.classList.remove('hidden');
+        };
+        
+        const startGame = async () => {
+            const roomRef = doc(db, "rooms", currentRoomId);
+            await runTransaction(db, async (transaction) => {
+                const roomDoc = await transaction.get(roomRef);
+                if (!roomDoc.exists()) throw "Room does not exist!";
+                
+                const roomData = roomDoc.data();
+                const playerIds = Object.keys(roomData.players);
+                if (playerIds.length < 2) throw "Not enough players";
+
+                // Reset all players to not be eliminated
+                const players = roomData.players;
+                playerIds.forEach(id => {
+                    players[id].isEliminated = false;
+                });
+
+                // Shuffle player order
+                for (let i = playerIds.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [playerIds[i], playerIds[j]] = [playerIds[j], playerIds[i]];
+                }
+
+                const categoryKeys = Object.keys(GAME_CATEGORIES);
+                const randomCategory = categoryKeys[Math.floor(Math.random() * categoryKeys.length)];
+
+                transaction.update(roomRef, {
+                    status: 'playing',
+                    players: players,
+                    playerOrder: playerIds,
+                    category: randomCategory,
+                    usedWords: [],
+                    currentTurn: {
+                        playerId: playerIds[0],
+                        startTime: serverTimestamp()
+                    }
+                });
+            });
+        };
+
+        const submitWord = async () => {
+            const word = wordInput.value.trim().toLowerCase();
+            if (!word) return;
+
+            wordInput.value = '';
+            submitWordBtn.disabled = true;
+
+            const roomRef = doc(db, "rooms", currentRoomId);
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const roomDoc = await transaction.get(roomRef);
+                    if (!roomDoc.exists()) throw "Room does not exist!";
+
+                    const roomData = roomDoc.data();
+                    const myTurn = roomData.currentTurn.playerId === currentUser.uid;
+
+                    if (!myTurn) {
+                        // This can happen due to network lag, just ignore.
+                        return;
+                    }
+
+                    if (roomData.usedWords.includes(word)) {
+                        // Word already used, player is eliminated
+                        transaction.update(roomRef, {
+                            [`players.${currentUser.uid}.isEliminated`]: true
+                        });
+                        // Then advance turn
+                        advanceTurn(transaction, roomRef, roomData);
+                        return;
+                    }
+
+                    // Word is valid, add it and advance turn
+                    const newUsedWords = [...roomData.usedWords, word];
+                    transaction.update(roomRef, { usedWords: newUsedWords });
+                    advanceTurn(transaction, roomRef, roomData);
+                });
+            } catch (error) {
+                console.error("Transaction failed: ", error);
+                submitWordBtn.disabled = false; // Re-enable on failure
+            }
+        };
+
+        const eliminatePlayer = async (playerId, reason) => {
+            console.log(`${playerId} eliminated: ${reason}`);
+            const roomRef = doc(db, "rooms", currentRoomId);
+            await runTransaction(db, async (transaction) => {
+                const roomDoc = await transaction.get(roomRef);
+                if (!roomDoc.exists()) return;
+                
+                const roomData = roomDoc.data();
+                // Only eliminate if it's their turn
+                if (roomData.currentTurn.playerId !== playerId) return;
+
+                transaction.update(roomRef, { [`players.${playerId}.isEliminated`]: true });
+                advanceTurn(transaction, roomRef, roomData);
+            });
+        };
+
+        const advanceTurn = (transaction, roomRef, roomData) => {
+            const { playerOrder, players } = roomData;
+            const activePlayers = playerOrder.filter(id => !players[id].isEliminated && !roomData.players[id].isEliminated);
+
+            if (activePlayers.length <= 1) {
+                // Game over
+                transaction.update(roomRef, { status: 'finished' });
+                return;
+            }
+
+            const currentIdx = playerOrder.indexOf(roomData.currentTurn.playerId);
+            let nextIdx = (currentIdx + 1) % playerOrder.length;
+
+            // Find the next non-eliminated player
+            while (players[playerOrder[nextIdx]].isEliminated) {
+                nextIdx = (nextIdx + 1) % playerOrder.length;
+            }
+
+            transaction.update(roomRef, {
+                currentTurn: {
+                    playerId: playerOrder[nextIdx],
+                    startTime: serverTimestamp()
+                }
+            });
+        };
+
+        // --- HELPERS ---
+        const validatePlayerName = () => {
+            localPlayerName = playerNameInput.value.trim();
+            if (!localPlayerName) {
+                alert("الرجاء إدخال اسمك!");
+                playerNameInput.focus();
+                return false;
+            }
+            return true;
+        };
+
+        const copyRoomIdToClipboard = () => {
+            navigator.clipboard.writeText(currentRoomId).then(() => {
+                alert('تم نسخ رمز الغرفة!');
+            }, () => {
+                alert('فشل النسخ.');
+            });
+        };
+        
+        const generateColor = (str) => {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            let color = '#';
+            for (let i = 0; i < 3; i++) {
+                let value = (hash >> (i * 8)) & 0xFF;
+                color += ('00' + value.toString(16)).substr(-2);
+            }
+            return color;
+        };
+
+        // --- EVENT LISTENERS ---
+        createRoomBtn.addEventListener('click', createRoom);
+        joinRoomBtn.addEventListener('click', () => joinRoomInput.value.trim() && joinRoom(joinRoomInput.value));
+        leaveRoomBtn.addEventListener('click', () => leaveRoom(true));
+        startGameBtn.addEventListener('click', startGame);
+        playAgainBtn.addEventListener('click', startGame); // Play again just re-runs start game
+        submitWordBtn.addEventListener('click', submitWord);
+        wordInput.addEventListener('keyup', (e) => e.key === 'Enter' && submitWordBtn.click());
+        copyRoomIdBtn.addEventListener('click', copyRoomIdToClipboard);
+
+        // --- START THE APP ---
+        document.addEventListener('DOMContentLoaded', initializeFirebase);
+    </script>
+</body>
+</html>
+
