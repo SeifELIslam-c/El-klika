@@ -3,644 +3,636 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalima - لعبة الكلمة</title>
+    <title>لعبة أسئلة كرتونية</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Changa:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         body {
-            font-family: 'Cairo', sans-serif;
+            font-family: 'Changa', sans-serif;
+            background-color: #0d47a1; /* Deep Blue Background */
+            color: white;
             overflow: hidden;
         }
-        .gradient-bg {
-            background: linear-gradient(135deg, #4A00E0, #8E2DE2);
+        .cartoon-button {
+            background-color: #ffc107; /* Amber/Yellow */
+            color: #212121; /* Dark Gray Text */
+            border: 4px solid black;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            text-align: center;
+            cursor: pointer;
+            transform: rotate(-2deg);
+            transition: all 0.2s ease-in-out;
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.4);
+            position: relative;
         }
-        .card {
-            background-color: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+        .cartoon-button:hover {
+            transform: rotate(0deg) scale(1.05);
+            box-shadow: 8px 8px 0px rgba(0,0,0,0.4);
+        }
+        .cartoon-button:active {
+            transform: rotate(0deg) scale(1.0) translateY(2px);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+        }
+        .category-button {
+            background-color: #1976d2; /* Lighter Blue */
+            border: 3px solid black;
+            border-radius: 10px;
+            padding: 15px;
+            transform: rotate(-1.5deg);
+            width: 100%;
+        }
+        .category-button:hover {
+             transform: rotate(0deg) scale(1.03);
+        }
+        .category-button.locked {
+            background-color: #424242;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .character-card {
+            border: 4px solid black;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .character-card.selected {
+            border-color: #ffc107;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px #ffc107;
+        }
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #qrcode {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
         }
         .player-avatar {
-            width: 40px;
-            height: 40px;
+            width: 60px;
+            height: 60px;
+            background-color: #e0e0e0;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            color: white;
-            font-size: 1.2rem;
+            font-size: 2rem;
+            border: 3px solid black;
         }
-        .timer-bar {
-            transition: width 1s linear;
+        .answer-option {
+             background-color: #1976d2;
+             border: 3px solid black;
+             border-radius: 10px;
+             padding: 15px;
+             transform: rotate(-1.5deg);
+             width: 80%;
+             margin-bottom: 15px;
         }
-        .eliminated {
-            opacity: 0.4;
-            text-decoration: line-through;
+         .answer-option:hover {
+             transform: rotate(0deg) scale(1.03);
         }
-        /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.4);
-            border-radius: 10px;
-        }
+
     </style>
 </head>
-<body class="gradient-bg text-white antialiased">
+<body class="bg-blue-900">
 
-    <!-- Main Container -->
-    <div id="app" class="h-screen w-screen flex flex-col items-center justify-center p-4 transition-opacity duration-500">
+    <!-- Screen: Start -->
+    <div id="start-screen" class="screen active">
+        <div class="w-full max-w-md text-center">
+            <h1 class="text-5xl font-bold mb-4 text-yellow-400">لعبة الأسئلة</h1>
+            <p class="text-xl mb-8">اختر شخصيتك وأدخل اسمك</p>
+            
+            <div class="mb-6">
+                <input type="text" id="player-name-input" placeholder="أدخل اسمك هنا" class="w-full p-3 rounded-lg text-black text-center text-xl">
+            </div>
 
-        <!-- Loading Spinner -->
-        <div id="loader" class="text-center">
-            <svg class="animate-spin h-10 w-10 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="mt-4 text-lg">جاري الاتصال...</p>
-        </div>
-
-        <!-- Home Screen -->
-        <div id="homeScreen" class="hidden text-center">
-            <h1 class="text-6xl font-bold mb-2">كلمة</h1>
-            <p class="text-xl mb-8 text-purple-200">لعبة سرعة البديهة والتركيز</p>
-            <div class="max-w-md mx-auto">
-                <input id="playerNameInput" type="text" placeholder="أدخل اسمك" class="w-full bg-white/20 placeholder-white/70 text-white text-center rounded-lg px-6 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-white">
-                <button id="createRoomBtn" class="w-full bg-white text-purple-600 font-bold rounded-lg px-8 py-3 text-lg hover:bg-gray-200 transition-colors mb-4">أنشئ لعبة جديدة</button>
-                <div class="flex items-center gap-4">
-                    <input id="joinRoomInput" type="text" placeholder="أدخل رمز الغرفة" class="w-full bg-white/20 placeholder-white/70 text-white text-center rounded-lg px-6 py-3 focus:outline-none focus:ring-2 focus:ring-white">
-                    <button id="joinRoomBtn" class="bg-green-500 text-white font-semibold rounded-lg px-6 py-3 hover:bg-green-600 transition-colors">انضم</button>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                <div class="character-card bg-pink-400 p-2" data-char="🦙">
+                    <div class="player-avatar">🦙</div>
+                </div>
+                <div class="character-card bg-green-400 p-2" data-char="🐑">
+                    <div class="player-avatar">🐑</div>
+                </div>
+                <div class="character-card bg-red-400 p-2" data-char="👾">
+                    <div class="player-avatar">👾</div>
+                </div>
+                <div class="character-card bg-blue-400 p-2" data-char="🤖">
+                    <div class="player-avatar">🤖</div>
                 </div>
             </div>
+
+            <button id="create-room-btn" class="cartoon-button w-full mb-4">إنشاء غرفة جديدة</button>
+            <button id="join-room-btn" class="cartoon-button w-full bg-green-500">الانضمام إلى غرفة (لو معك رابط)</button>
         </div>
+    </div>
 
-        <!-- Game Screen -->
-        <div id="gameScreen" class="hidden h-full w-full max-w-7xl mx-auto">
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
+    <!-- Screen: Lobby -->
+    <div id="lobby-screen" class="screen">
+        <div class="w-full max-w-2xl text-center">
+            <h2 class="text-4xl font-bold mb-4">غرفة الانتظار</h2>
+            <p class="mb-2">شارك الرابط أو الكود لدعوة أصدقائك!</p>
+            <p class="mb-4 text-yellow-300">معرف الغرفة: <span id="room-id-display"></span></p>
+            
+            <div class="flex justify-center">
+                <div id="qrcode"></div>
+            </div>
+            
+            <p class="mt-4 mb-2">اللاعبون في الغرفة (<span id="player-count">1</span>/10):</p>
+            <div id="players-list" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                <!-- Player cards will be injected here -->
+            </div>
+            
+            <button id="start-game-btn" class="cartoon-button w-full max-w-xs">ابدأ اللعبة!</button>
+            <p class="text-sm mt-2 text-gray-300">فقط منشئ الغرفة يمكنه بدء اللعبة.</p>
+             <p class="text-xs mt-4">معرف المستخدم الخاص بك: <span id="user-id-display" class="text-yellow-200"></span></p>
+        </div>
+    </div>
 
-                <!-- Right Panel (Players & Info) -->
-                <div class="lg:col-span-1 card rounded-xl p-4 flex flex-col order-1 lg:order-3">
-                    <div class="flex justify-between items-center mb-4">
-                         <h2 class="text-2xl font-bold">كلمة</h2>
-                         <button id="leaveRoomBtn" class="bg-red-500/80 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600">مغادرة</button>
-                    </div>
-                    <div class="mb-4">
-                        <p class="text-sm text-purple-200">رمز الغرفة:</p>
-                        <div class="flex items-center gap-2 mt-1">
-                            <p id="roomIdDisplay" class="font-mono bg-black/20 px-3 py-1 rounded-md"></p>
-                            <button id="copyRoomIdBtn" class="text-white/70 hover:text-white">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <h3 class="font-semibold mb-2 text-lg">اللاعبون</h3>
-                    <div id="playerList" class="space-y-3 flex-grow custom-scrollbar overflow-y-auto pr-2">
-                        <!-- Player items will be injected here -->
-                    </div>
-                    <button id="startGameBtn" class="w-full bg-green-500 text-white font-bold rounded-lg py-3 mt-4 hover:bg-green-600 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">ابدأ اللعبة</button>
-                    <button id="playAgainBtn" class="w-full hidden bg-blue-500 text-white font-bold rounded-lg py-3 mt-4 hover:bg-blue-600 transition-colors">العب مجدداً</button>
-                </div>
-
-                <!-- Center Panel (Game Area) -->
-                <div class="lg:col-span-3 card rounded-xl p-6 flex flex-col items-center justify-between order-2">
-                    <!-- Game Header -->
-                    <div id="gameHeader" class="text-center w-full">
-                         <p id="turnInfo" class="text-xl h-7"></p>
-                         <div class="w-full bg-black/20 rounded-full h-2.5 mt-2">
-                            <div id="timerBar" class="bg-green-500 h-2.5 rounded-full timer-bar" style="width: 100%"></div>
-                        </div>
-                    </div>
-
-                    <!-- Game Content -->
-                    <div id="gameContent" class="text-center">
-                        <div id="waitingForPlayers" class="text-center">
-                            <h3 class="text-4xl font-bold">في انتظار اللاعبين...</h3>
-                            <p class="text-purple-200 mt-2 text-lg">سيقوم المضيف ببدء اللعبة.</p>
-                        </div>
-
-                        <div id="gameplayArea" class="hidden">
-                            <p class="text-2xl text-purple-200">الفئة</p>
-                            <h2 id="categoryDisplay" class="text-6xl font-bold my-4"></h2>
-                            <div class="relative w-full max-w-md mx-auto">
-                                <input id="wordInput" type="text" placeholder="أدخل كلمتك هنا..." class="w-full text-2xl bg-white/20 placeholder-white/70 text-white text-center rounded-lg px-6 py-4 focus:outline-none focus:ring-2 focus:ring-white disabled:bg-gray-600/50">
-                                <button id="submitWordBtn" class="absolute left-2 top-1/2 -translate-y-1/2 bg-green-500 text-white font-semibold rounded-lg px-5 py-2 hover:bg-green-600 transition-colors disabled:bg-gray-500">أرسل</button>
-                            </div>
-                        </div>
-
-                        <div id="gameOver" class="hidden text-center">
-                            <h3 class="text-5xl font-bold text-yellow-300">انتهت اللعبة!</h3>
-                            <p id="winnerDisplay" class="text-3xl mt-4"></p>
-                        </div>
-                    </div>
-
-                    <!-- Used Words Footer -->
-                    <div id="usedWordsContainer" class="w-full">
-                        <h4 class="text-center mb-2 text-purple-200">الكلمات المستخدمة</h4>
-                        <div id="usedWordsList" class="h-20 bg-black/20 rounded-lg p-2 flex flex-wrap justify-center items-start gap-2 overflow-y-auto custom-scrollbar">
-                           <!-- Used words will be injected here -->
-                        </div>
-                    </div>
-                </div>
-
+    <!-- Screen: Category Selection -->
+    <div id="category-screen" class="screen">
+        <div class="w-full max-w-4xl text-center">
+            <h2 class="text-4xl font-bold mb-6">اختر فئة للسؤال</h2>
+            <div id="categories-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- Categories will be injected here -->
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Screen: Question -->
+    <div id="question-screen" class="screen">
+        <div class="w-full max-w-2xl text-center flex flex-col items-center">
+            <div class="w-full flex justify-between items-center mb-4">
+                <span id="question-timer" class="text-3xl font-bold text-yellow-400">30</span>
+                <h3 class="text-2xl font-bold">الجولة <span id="round-counter">1</span>/10</h3>
+            </div>
+            <div class="bg-blue-800 p-6 rounded-lg border-4 border-black mb-6 w-full">
+                <p class="text-xl mb-4 font-bold" id="question-category"></p>
+                <p class="text-2xl min-h-[60px]" id="question-text"></p>
+                <img id="question-image" src="" class="max-w-full max-h-64 mx-auto rounded-lg mt-4 hidden">
+            </div>
+            <div id="answer-options" class="w-full flex flex-col items-center">
+                <!-- Answer options or input field will be here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen: End Game -->
+    <div id="end-game-screen" class="screen">
+        <div class="w-full max-w-md text-center">
+            <h1 class="text-5xl font-bold mb-6 text-yellow-400">انتهت اللعبة!</h1>
+            <div id="final-scores" class="space-y-3">
+                <!-- Final scores will be listed here -->
+            </div>
+            <button id="play-again-btn" class="cartoon-button w-full mt-8">العب مرة أخرى</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
     <script type="module">
-        // --- YOUR FIREBASE CONFIGURATION ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyBQLIKtueG954OYiWz-YDBl_LyUxc_VRT8",
-          authDomain: "el-klika.firebaseapp.com",
-          projectId: "el-klika",
-          storageBucket: "el-klika.appspot.com",
-          messagingSenderId: "357776786294",
-          appId: "1:357776786294:web:8cb4ec7eabe2895a133057",
-          measurementId: "G-0VZ35M4V50"
-        };
-
-        // --- FIREBASE SECURITY RULES REMINDER ---
-        // Make sure to set your Firestore security rules in the Firebase console.
-        // A good starting point is to only allow authenticated users to read/write.
-        /*
-        rules_version = '2';
-        service cloud.firestore {
-          match /databases/{database}/documents {
-            match /rooms/{roomId}/{document=**} {
-              allow read, write: if request.auth != null;
-            }
-          }
-        }
-        */
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, arrayUnion, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- DOM ELEMENT REFERENCES ---
-        const loader = document.getElementById('loader');
-        const homeScreen = document.getElementById('homeScreen');
-        const gameScreen = document.getElementById('gameScreen');
-        const createRoomBtn = document.getElementById('createRoomBtn');
-        const joinRoomBtn = document.getElementById('joinRoomBtn');
-        const playerNameInput = document.getElementById('playerNameInput');
-        const joinRoomInput = document.getElementById('joinRoomInput');
-        const roomIdDisplay = document.getElementById('roomIdDisplay');
-        const copyRoomIdBtn = document.getElementById('copyRoomIdBtn');
-        const playerList = document.getElementById('playerList');
-        const startGameBtn = document.getElementById('startGameBtn');
-        const playAgainBtn = document.getElementById('playAgainBtn');
-        const leaveRoomBtn = document.getElementById('leaveRoomBtn');
-        const waitingForPlayers = document.getElementById('waitingForPlayers');
-        const gameplayArea = document.getElementById('gameplayArea');
-        const categoryDisplay = document.getElementById('categoryDisplay');
-        const wordInput = document.getElementById('wordInput');
-        const submitWordBtn = document.getElementById('submitWordBtn');
-        const usedWordsList = document.getElementById('usedWordsList');
-        const turnInfo = document.getElementById('turnInfo');
-        const timerBar = document.getElementById('timerBar');
-        const gameOver = document.getElementById('gameOver');
-        const winnerDisplay = document.getElementById('winnerDisplay');
-
-        // --- FIREBASE & APP STATE ---
-        let app, auth, db;
-        let currentUser = null;
-        let currentRoomId = null;
-        let roomUnsubscribe = null;
-        let localPlayerName = '';
-        let turnTimer = null;
-
-        // --- GAME DATA ---
-        const GAME_CATEGORIES = {
-            "كرة القدم": "لاعبون، فرق، ملاعب...",
-            "حيوانات": "ثدييات، طيور، حشرات...",
-            "دول": "عواصم، قارات، معالم...",
-            "أفلام عربية": "ممثلون، مخرجون، عناوين...",
-            "أكل": "فواكه، خضروات، أطباق...",
-            "مهن": "طبيب، مهندس، معلم...",
-        };
-        const TURN_DURATION = 10000; // 10 seconds
-
-        // --- INITIALIZATION ---
-        function initializeFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        currentUser = user;
-                        loader.classList.add('hidden');
-                        homeScreen.classList.remove('hidden');
-                    } else {
-                        signInAnonymously(auth).catch(error => {
-                            console.error("Anonymous sign-in failed:", error);
-                            loader.innerHTML = `<p class="text-red-400">فشل المصادقة. يرجى التحقق من إعداد Firebase.</p>`;
-                        });
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                loader.innerHTML = `<p class="text-red-400">خطأ في تهيئة Firebase.</p>`;
-            }
-        }
-
-        // --- UI UPDATE FUNCTIONS ---
-        const updatePlayerListUI = (players, playerOrder, currentPlayerId) => {
-            playerList.innerHTML = '';
-            const playerArray = Object.values(players).sort((a,b) => {
-                return (playerOrder.indexOf(a.uid) || Infinity) - (playerOrder.indexOf(b.uid) || Infinity);
-            });
-
-            playerArray.forEach(player => {
-                const playerColor = generateColor(player.uid);
-                const isHost = player.isHost;
-                const isYou = player.uid === currentUser.uid;
-                const isCurrent = player.uid === currentPlayerId;
-
-                const playerEl = document.createElement('div');
-                playerEl.className = `flex items-center gap-3 p-2 rounded-lg transition-all duration-300 ${isCurrent ? 'bg-white/20 scale-105' : ''} ${player.isEliminated ? 'eliminated' : ''}`;
-                playerEl.innerHTML = `
-                    <div class="player-avatar" style="background-color: ${playerColor}">
-                        ${player.name.charAt(0)}
-                    </div>
-                    <span class="font-semibold flex-grow">${player.name} ${isYou ? '(أنت)' : ''}</span>
-                    ${isHost ? '<span class="text-xs font-bold text-yellow-300">المضيف</span>' : ''}
-                `;
-                playerList.appendChild(playerEl);
-            });
-        };
-
-        const updateGameUI = (roomData) => {
-            const { status, players, playerOrder, currentTurn, usedWords, category } = roomData;
-            
-            updatePlayerListUI(players, playerOrder, currentTurn?.playerId);
-
-            if (status === 'waiting') {
-                waitingForPlayers.classList.remove('hidden');
-                gameplayArea.classList.add('hidden');
-                gameOver.classList.add('hidden');
-                turnInfo.textContent = '';
-                timerBar.style.width = '100%';
-                timerBar.style.backgroundColor = '#22c55e';
-            } else if (status === 'playing') {
-                waitingForPlayers.classList.add('hidden');
-                gameplayArea.classList.remove('hidden');
-                gameOver.classList.add('hidden');
-
-                categoryDisplay.textContent = category;
-                
-                const currentPlayer = players[currentTurn.playerId];
-                const isMyTurn = currentTurn.playerId === currentUser.uid;
-
-                turnInfo.textContent = `دور ${currentPlayer.name}`;
-                wordInput.disabled = !isMyTurn;
-                submitWordBtn.disabled = !isMyTurn;
-                wordInput.placeholder = isMyTurn ? "دورك الآن!" : `في انتظار ${currentPlayer.name}...`;
-                if(isMyTurn) wordInput.focus();
-
-                updateTimer(currentTurn.startTime);
-
-            } else if (status === 'finished') {
-                waitingForPlayers.classList.add('hidden');
-                gameplayArea.classList.add('hidden');
-                gameOver.classList.remove('hidden');
-                const winner = Object.values(players).find(p => !p.isEliminated);
-                winnerDisplay.textContent = winner ? `الفائز هو ${winner.name}!` : 'لا يوجد فائز!';
-                turnInfo.textContent = 'انتهت الجولة';
-                if(turnTimer) clearInterval(turnTimer);
-            }
-
-            // Update used words list
-            usedWordsList.innerHTML = '';
-            (usedWords || []).forEach(word => {
-                const wordEl = document.createElement('span');
-                wordEl.className = 'bg-black/30 text-white text-sm px-3 py-1 rounded-full';
-                wordEl.textContent = word;
-                usedWordsList.appendChild(wordEl);
-            });
-
-            // Update host buttons
-            const isHost = roomData.hostId === currentUser.uid;
-            startGameBtn.style.display = (isHost && status === 'waiting') ? 'block' : 'none';
-            playAgainBtn.style.display = (isHost && status === 'finished') ? 'block' : 'none';
-            const canStart = Object.keys(players).length >= 2;
-            startGameBtn.disabled = !canStart;
-            startGameBtn.textContent = canStart ? 'ابدأ اللعبة' : 'تحتاج لاعبين أو أكثر';
-        };
-
-        const updateTimer = (startTime) => {
-            if (turnTimer) clearInterval(turnTimer);
-            if (!startTime) return;
-
-            const turnEndTime = startTime.toMillis() + TURN_DURATION;
-
-            turnTimer = setInterval(() => {
-                const now = Date.now();
-                const timeLeft = turnEndTime - now;
-                
-                if (timeLeft <= 0) {
-                    timerBar.style.width = '0%';
-                    clearInterval(turnTimer);
-                    // The player whose turn it was should automatically be eliminated
-                    // This logic is handled on the client side that timed out
-                    if(wordInput.disabled === false) { // If it's my turn and timer ran out
-                        eliminatePlayer(currentUser.uid, "نفذ الوقت");
-                    }
-                } else {
-                    const percentage = (timeLeft / TURN_DURATION) * 100;
-                    timerBar.style.width = `${percentage}%`;
-                    if(percentage < 25) timerBar.style.backgroundColor = '#ef4444'; // red
-                    else if(percentage < 50) timerBar.style.backgroundColor = '#f59e0b'; // amber
-                    else timerBar.style.backgroundColor = '#22c55e'; // green
-                }
-            }, 100);
-        };
-
-        // --- GAME LOGIC FUNCTIONS ---
-        const createRoom = async () => {
-            if (!validatePlayerName()) return;
-
-            const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const roomRef = doc(db, "rooms", roomId);
-            
-            const newPlayer = {
-                uid: currentUser.uid,
-                name: localPlayerName,
-                isHost: true,
-                isEliminated: false,
-            };
-
-            const roomData = {
-                hostId: currentUser.uid,
-                players: { [currentUser.uid]: newPlayer },
-                status: 'waiting', // waiting, playing, finished
-                createdAt: serverTimestamp()
-            };
-
-            await setDoc(roomRef, roomData);
-            await joinRoom(roomId);
-        };
-
-        const joinRoom = async (roomId) => {
-            if (!validatePlayerName()) return;
-
-            currentRoomId = roomId.toUpperCase();
-            const roomRef = doc(db, "rooms", currentRoomId);
-            
-            try {
-                const roomSnap = await getDoc(roomRef);
-                if (!roomSnap.exists()) {
-                    alert("الغرفة غير موجودة!");
-                    return;
-                }
-
-                const roomData = roomSnap.data();
-                if (roomData.status !== 'waiting' && !roomData.players[currentUser.uid]) {
-                    alert("لا يمكنك الانضمام، اللعبة بدأت بالفعل.");
-                    return;
-                }
-
-                const newPlayer = { uid: currentUser.uid, name: localPlayerName, isHost: false, isEliminated: false };
-                await updateDoc(roomRef, { [`players.${currentUser.uid}`]: newPlayer });
-
-                homeScreen.classList.add('hidden');
-                gameScreen.classList.remove('hidden');
-                roomIdDisplay.textContent = currentRoomId;
-
-                listenToRoomUpdates();
-
-            } catch (error) {
-                console.error("Error joining room: ", error);
-                alert("لا يمكن الانضمام للغرفة.");
-            }
-        };
-
-        const listenToRoomUpdates = () => {
-            if (roomUnsubscribe) roomUnsubscribe();
-            const roomRef = doc(db, "rooms", currentRoomId);
-            roomUnsubscribe = onSnapshot(roomRef, (doc) => {
-                if (doc.exists()) {
-                    updateGameUI(doc.data());
-                } else {
-                    alert("المضيف أغلق الغرفة.");
-                    leaveRoom(false); // Don't update firestore since doc is gone
-                }
-            });
-        };
-
-        const leaveRoom = async (updateFirestore = true) => {
-            if (!currentRoomId || !currentUser) return;
-            if (roomUnsubscribe) roomUnsubscribe();
-            roomUnsubscribe = null;
-
-            if (updateFirestore) {
-                const roomRef = doc(db, "rooms", currentRoomId);
-                await runTransaction(db, async (transaction) => {
-                    const roomDoc = await transaction.get(roomRef);
-                    if (!roomDoc.exists()) return;
-                    
-                    const roomData = roomDoc.data();
-                    const newPlayers = { ...roomData.players };
-                    delete newPlayers[currentUser.uid];
-                    
-                    if (Object.keys(newPlayers).length === 0) {
-                        transaction.delete(roomRef); // Delete room if empty
-                    } else {
-                        let newHostId = roomData.hostId;
-                        if (roomData.hostId === currentUser.uid) {
-                            // If host leaves, assign a new host
-                            newHostId = Object.keys(newPlayers)[0];
-                            newPlayers[newHostId].isHost = true;
-                        }
-                        transaction.update(roomRef, { players: newPlayers, hostId: newHostId });
-                    }
-                });
-            }
-            
-            currentRoomId = null;
-            if (turnTimer) clearInterval(turnTimer);
-            gameScreen.classList.add('hidden');
-            homeScreen.classList.remove('hidden');
+        // --- Your web app's Firebase configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQLIKtueG954OYiWz-YDBl_LyUxc_VRT8",
+            authDomain: "el-klika.firebaseapp.com",
+            projectId: "el-klika",
+            storageBucket: "el-klika.appspot.com",
+            messagingSenderId: "357776786294",
+            appId: "1:357776786294:web:8cb4ec7eabe2895a133057",
+            measurementId: "G-0VZ35M4V50"
         };
         
-        const startGame = async () => {
-            const roomRef = doc(db, "rooms", currentRoomId);
-            await runTransaction(db, async (transaction) => {
-                const roomDoc = await transaction.get(roomRef);
-                if (!roomDoc.exists()) throw "Room does not exist!";
-                
-                const roomData = roomDoc.data();
-                const playerIds = Object.keys(roomData.players);
-                if (playerIds.length < 2) throw "Not enough players";
+        // --- App State ---
+        let app, auth, db;
+        let userId, currentRoomId, player, roomUnsubscribe;
+        let timerInterval;
 
-                // Reset all players to not be eliminated
-                const players = roomData.players;
-                playerIds.forEach(id => {
-                    players[id].isEliminated = false;
-                });
+        // --- UI Elements ---
+        const screens = document.querySelectorAll('.screen');
+        const startScreen = document.getElementById('start-screen');
+        const lobbyScreen = document.getElementById('lobby-screen');
+        const categoryScreen = document.getElementById('category-screen');
+        const questionScreen = document.getElementById('question-screen');
+        const endGameScreen = document.getElementById('end-game-screen');
+        
+        const playerNameInput = document.getElementById('player-name-input');
+        const characterCards = document.querySelectorAll('.character-card');
+        const createRoomBtn = document.getElementById('create-room-btn');
+        const joinRoomBtn = document.getElementById('join-room-btn');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
 
-                // Shuffle player order
-                for (let i = playerIds.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [playerIds[i], playerIds[j]] = [playerIds[j], playerIds[i]];
-                }
-
-                const categoryKeys = Object.keys(GAME_CATEGORIES);
-                const randomCategory = categoryKeys[Math.floor(Math.random() * categoryKeys.length)];
-
-                transaction.update(roomRef, {
-                    status: 'playing',
-                    players: players,
-                    playerOrder: playerIds,
-                    category: randomCategory,
-                    usedWords: [],
-                    currentTurn: {
-                        playerId: playerIds[0],
-                        startTime: serverTimestamp()
-                    }
-                });
-            });
+        // --- Question Data ---
+        const questions = {
+            'أنمي وكرتون': [
+                { q: 'ما هو اسم القرد الذي يرافق علاء الدين؟', a: ['أبو', 'زعفران', 'راجا', 'ياسمين'], correct: 0 },
+                { q: 'في أي أنمي تجد شخصية "ساسكي أوتشيها"؟', a: ['ناروتو', 'ون بيس', 'بليتش', 'دراغون بول'], correct: 0 },
+                { q: 'ما هو اسم البوكيمون الأصفر الشهير رفيق آش؟', a: ['بيكاتشو', 'تشارمندر', 'بلباسور', 'سكويرتل'], correct: 0 },
+            ],
+            'أفلام ومسلسلات': [
+                { q: 'من هو الممثل الذي قام بدور "الجوكر" في فيلم The Dark Knight؟', a: ['هيث ليدجر', 'جاك نيكلسون', 'خواكين فينيكس', 'جاريد ليتو'], correct: 0 },
+                { q: 'ما هو اسم المسلسل الذي تدور أحداثه في "ويستروس"؟', a: ['صراع العروش', 'فايكنجز', 'بريكنج باد', 'ذا ويتشر'], correct: 0 },
+            ],
+            'جغرافيا': [
+                { q: 'ما هي عاصمة أستراليا؟', a: ['كانبرا', 'سيدني', 'ملبورن', 'بيرث'], correct: 0 },
+                { q: 'في أي قارة تقع دولة مصر؟', a: ['أفريقيا', 'آسيا', 'أوروبا', 'كلاهما (أفريقيا وآسيا)'], correct: 3 },
+                { q: 'ما هو أطول نهر في العالم؟', a: ['نهر النيل', 'نهر الأمازون', 'نهر اليانغتسي', 'نهر المسيسيبي'], correct: 0 },
+            ],
+            'علوم': [
+                 { q: 'ما هو الرمز الكيميائي للماء؟', a: ['H2O', 'CO2', 'O2', 'NaCl'], correct: 0 },
+                 { q: 'كم عدد الكواكب في نظامنا الشمسي؟', a: ['8', '9', '7', '10'], correct: 0 },
+            ],
+            'رياضة': [
+                { q: 'كم عدد اللاعبين في فريق كرة القدم؟', a: ['11', '9', '7', '5'], correct: 0 },
+                { q: 'من هو اللاعب الذي يُلقب بـ "الدون"؟', a: ['كريستيانو رونالدو', 'ليونيل ميسي', 'نيمار', 'محمد صلاح'], correct: 0 },
+            ],
+             'معلومات عامة': [
+                { q: 'ما هو أكبر حيوان على وجه الأرض؟', a: ['الحوت الأزرق', 'الفيل الأفريقي', 'الزرافة', 'القرش الأبيض'], correct: 0 },
+                { q: 'في أي بلد تم اختراع البيتزا؟', a: ['إيطاليا', 'أمريكا', 'الصين', 'اليونان'], correct: 0 },
+            ]
         };
 
-        const submitWord = async () => {
-            const word = wordInput.value.trim().toLowerCase();
-            if (!word) return;
+        // --- Functions ---
+        
+        function initialize() {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('user-id-display').textContent = userId;
+                    
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const roomIdFromUrl = urlParams.get('room');
 
-            wordInput.value = '';
-            submitWordBtn.disabled = true;
-
-            const roomRef = doc(db, "rooms", currentRoomId);
-
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const roomDoc = await transaction.get(roomRef);
-                    if (!roomDoc.exists()) throw "Room does not exist!";
-
-                    const roomData = roomDoc.data();
-                    const myTurn = roomData.currentTurn.playerId === currentUser.uid;
-
-                    if (!myTurn) {
-                        // This can happen due to network lag, just ignore.
-                        return;
+                    if (roomIdFromUrl) {
+                        currentRoomId = roomIdFromUrl;
+                        if(validatePlayerInfo(true)) { // validate silently
+                           await joinRoom(true);
+                        }
                     }
-
-                    if (roomData.usedWords.includes(word)) {
-                        // Word already used, player is eliminated
-                        transaction.update(roomRef, {
-                            [`players.${currentUser.uid}.isEliminated`]: true
-                        });
-                        // Then advance turn
-                        advanceTurn(transaction, roomRef, roomData);
-                        return;
-                    }
-
-                    // Word is valid, add it and advance turn
-                    const newUsedWords = [...roomData.usedWords, word];
-                    transaction.update(roomRef, { usedWords: newUsedWords });
-                    advanceTurn(transaction, roomRef, roomData);
-                });
-            } catch (error) {
-                console.error("Transaction failed: ", error);
-                submitWordBtn.disabled = false; // Re-enable on failure
-            }
-        };
-
-        const eliminatePlayer = async (playerId, reason) => {
-            console.log(`${playerId} eliminated: ${reason}`);
-            const roomRef = doc(db, "rooms", currentRoomId);
-            await runTransaction(db, async (transaction) => {
-                const roomDoc = await transaction.get(roomRef);
-                if (!roomDoc.exists()) return;
-                
-                const roomData = roomDoc.data();
-                // Only eliminate if it's their turn
-                if (roomData.currentTurn.playerId !== playerId) return;
-
-                transaction.update(roomRef, { [`players.${playerId}.isEliminated`]: true });
-                advanceTurn(transaction, roomRef, roomData);
-            });
-        };
-
-        const advanceTurn = (transaction, roomRef, roomData) => {
-            const { playerOrder, players } = roomData;
-            const activePlayers = playerOrder.filter(id => !players[id].isEliminated && !roomData.players[id].isEliminated);
-
-            if (activePlayers.length <= 1) {
-                // Game over
-                transaction.update(roomRef, { status: 'finished' });
-                return;
-            }
-
-            const currentIdx = playerOrder.indexOf(roomData.currentTurn.playerId);
-            let nextIdx = (currentIdx + 1) % playerOrder.length;
-
-            // Find the next non-eliminated player
-            while (players[playerOrder[nextIdx]].isEliminated) {
-                nextIdx = (nextIdx + 1) % playerOrder.length;
-            }
-
-            transaction.update(roomRef, {
-                currentTurn: {
-                    playerId: playerOrder[nextIdx],
-                    startTime: serverTimestamp()
+                } else {
+                    await signInAnonymously(auth);
                 }
             });
-        };
+        }
 
-        // --- HELPERS ---
-        const validatePlayerName = () => {
-            localPlayerName = playerNameInput.value.trim();
-            if (!localPlayerName) {
-                alert("الرجاء إدخال اسمك!");
-                playerNameInput.focus();
+        function switchScreen(screenId) {
+            screens.forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function selectCharacter(e) {
+            characterCards.forEach(card => card.classList.remove('selected'));
+            e.currentTarget.classList.add('selected');
+        }
+
+        async function handleCreateRoom() {
+            if (!validatePlayerInfo()) return;
+            currentRoomId = generateRoomId();
+            
+            const newRoom = {
+                hostId: userId,
+                players: [player],
+                gameState: 'waiting', // waiting, selecting, inRound, finished
+                currentRound: 0,
+                createdAt: new Date(),
+            };
+
+            const roomsCollection = collection(db, "rooms");
+            await setDoc(doc(roomsCollection, currentRoomId), newRoom);
+            subscribeToRoom(currentRoomId);
+            switchScreen('lobby-screen');
+        }
+        
+        async function joinRoom(fromUrl = false) {
+             if(!fromUrl) {
+                if (!validatePlayerInfo()) return;
+                const roomIdInput = prompt("الرجاء إدخال معرف الغرفة:");
+                if (!roomIdInput) return;
+                currentRoomId = roomIdInput.trim();
+             }
+
+            const roomRef = doc(db, "rooms", currentRoomId);
+            const roomSnap = await getDoc(roomRef);
+
+            if (roomSnap.exists()) {
+                 const roomData = roomSnap.data();
+                if (roomData.players.length >= 10) {
+                    alert("عذراً, هذه الغرفة ممتلئة.");
+                    return;
+                }
+                // Prevent adding the same user twice
+                if (!roomData.players.some(p => p.userId === userId)) {
+                    await updateDoc(roomRef, {
+                        players: arrayUnion(player)
+                    });
+                }
+                subscribeToRoom(currentRoomId);
+                switchScreen('lobby-screen');
+            } else {
+                alert("لم يتم العثور على الغرفة. تأكد من المعرف.");
+                if(fromUrl) {
+                    window.history.replaceState({}, document.title, window.location.pathname); // Clear invalid room from URL
+                }
+            }
+        }
+        
+        function validatePlayerInfo(silent = false) {
+            const name = playerNameInput.value.trim();
+            const characterEl = document.querySelector('.character-card.selected');
+            if (!name || !characterEl) {
+                if (!silent) alert('الرجاء إدخال اسمك واختيار شخصية!');
                 return false;
             }
+            player = {
+                userId: userId,
+                name: name,
+                character: characterEl.dataset.char,
+                score: 0,
+                hasAnswered: false
+            };
             return true;
-        };
+        }
 
-        const copyRoomIdToClipboard = () => {
-            navigator.clipboard.writeText(currentRoomId).then(() => {
-                alert('تم نسخ رمز الغرفة!');
-            }, () => {
-                alert('فشل النسخ.');
+        function subscribeToRoom(roomId) {
+            if (roomUnsubscribe) roomUnsubscribe();
+            
+            const roomRef = doc(db, "rooms", roomId);
+            roomUnsubscribe = onSnapshot(roomRef, (doc) => {
+                if (!doc.exists()) {
+                    if (timerInterval) clearInterval(timerInterval);
+                    alert("تم إغلاق الغرفة.");
+                    window.location.reload();
+                    return;
+                }
+                const roomData = doc.data();
+                updateLobbyUI(roomData);
+                updateGameState(roomData);
             });
-        };
+        }
         
-        const generateColor = (str) => {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            let color = '#';
-            for (let i = 0; i < 3; i++) {
-                let value = (hash >> (i * 8)) & 0xFF;
-                color += ('00' + value.toString(16)).substr(-2);
-            }
-            return color;
-        };
+        function updateLobbyUI(roomData) {
+            document.getElementById('room-id-display').textContent = currentRoomId;
+            const playersList = document.getElementById('players-list');
+            playersList.innerHTML = '';
+            roomData.players.forEach(p => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'flex flex-col items-center p-2 rounded-lg bg-blue-800';
+                playerDiv.innerHTML = `
+                    <div class="player-avatar" style="background-color: ${p.userId === roomData.hostId ? '#ffeb3b' : '#e0e0e0'}">${p.character}</div>
+                    <p class="mt-2 font-semibold">${p.name}</p>
+                    <p class="text-sm text-yellow-300">Score: ${p.score}</p>
+                `;
+                playersList.appendChild(playerDiv);
+            });
+            document.getElementById('player-count').textContent = roomData.players.length;
+            
+            // Show start button only to host
+            startGameBtn.style.display = roomData.hostId === userId ? 'block' : 'none';
 
-        // --- EVENT LISTENERS ---
-        createRoomBtn.addEventListener('click', createRoom);
-        joinRoomBtn.addEventListener('click', () => joinRoomInput.value.trim() && joinRoom(joinRoomInput.value));
-        leaveRoomBtn.addEventListener('click', () => leaveRoom(true));
-        startGameBtn.addEventListener('click', startGame);
-        playAgainBtn.addEventListener('click', startGame); // Play again just re-runs start game
-        submitWordBtn.addEventListener('click', submitWord);
-        wordInput.addEventListener('keyup', (e) => e.key === 'Enter' && submitWordBtn.click());
-        copyRoomIdBtn.addEventListener('click', copyRoomIdToClipboard);
+            // Generate QR Code
+            const qrCodeElement = document.getElementById('qrcode');
+            qrCodeElement.innerHTML = "";
+            const roomUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomId}`;
+            new QRCode(qrCodeElement, {
+                text: roomUrl,
+                width: 128,
+                height: 128,
+            });
+        }
 
-        // --- START THE APP ---
-        document.addEventListener('DOMContentLoaded', initializeFirebase);
+        function updateGameState(roomData) {
+            // If we are on the start screen but a room ID exists in the URL,
+            // and we haven't successfully joined yet, don't change the screen.
+            const urlParams = new URLSearchParams(window.location.search);
+            if (startScreen.classList.contains('active') && urlParams.get('room')) {
+                return;
+            }
+            
+            switch(roomData.gameState) {
+                case 'waiting':
+                    switchScreen('lobby-screen');
+                    break;
+                case 'selecting':
+                    switchScreen('category-screen');
+                    renderCategories(roomData);
+                    break;
+                case 'inRound':
+                    switchScreen('question-screen');
+                    renderQuestion(roomData);
+                    break;
+                case 'finished':
+                    if (timerInterval) clearInterval(timerInterval);
+                    switchScreen('end-game-screen');
+                    renderFinalScores(roomData);
+                    break;
+            }
+        }
+        
+        async function handleStartGame() {
+            const roomRef = doc(db, "rooms", currentRoomId);
+            const roomSnap = await getDoc(roomRef);
+            if(roomSnap.data().players.length < 1) { // Or 2 if you want minimum 2 players
+                alert("تحتاج إلى لاعب واحد على الأقل لبدء اللعبة.");
+                return;
+            }
+            await updateDoc(roomRef, {
+                gameState: 'selecting',
+                currentRound: 1
+            });
+        }
+
+        function renderCategories(roomData) {
+            const grid = document.getElementById('categories-grid');
+            grid.innerHTML = '';
+            Object.keys(questions).forEach(cat => {
+                const button = document.createElement('button');
+                button.className = 'cartoon-button category-button';
+                button.textContent = cat;
+                button.onclick = () => selectCategory(cat);
+                grid.appendChild(button);
+            });
+        }
+
+        async function selectCategory(category) {
+            const categoryQuestions = questions[category];
+            const questionIndex = Math.floor(Math.random() * categoryQuestions.length);
+            
+            const roomRef = doc(db, "rooms", currentRoomId);
+            const roomSnap = await getDoc(roomRef);
+            const currentPlayers = roomSnap.data().players;
+
+            await updateDoc(roomRef, {
+                gameState: 'inRound',
+                currentQuestion: {
+                    category: category,
+                    index: questionIndex,
+                },
+                'players': currentPlayers.map(p => ({...p, hasAnswered: false }))
+            });
+        }
+        
+        function renderQuestion(roomData) {
+            if (!roomData.currentQuestion) return;
+
+            const { category, index } = roomData.currentQuestion;
+            const questionData = questions[category][index];
+
+            document.getElementById('round-counter').textContent = roomData.currentRound;
+            document.getElementById('question-category').textContent = category;
+            document.getElementById('question-text').textContent = questionData.q;
+            
+            const imgEl = document.getElementById('question-image');
+            if (questionData.img) {
+                imgEl.src = questionData.img;
+                imgEl.style.display = 'block';
+            } else {
+                imgEl.style.display = 'none';
+            }
+
+            const answersContainer = document.getElementById('answer-options');
+            answersContainer.innerHTML = '';
+
+            const currentPlayer = roomData.players.find(p => p.userId === userId);
+            if (currentPlayer && currentPlayer.hasAnswered) {
+                answersContainer.innerHTML = '<p class="text-2xl text-yellow-300">لقد أجبت. انتظر بقية اللاعبين...</p>';
+                return; // Don't start a new timer if already answered
+            }
+
+            questionData.a.forEach((answer, i) => {
+                const button = document.createElement('button');
+                button.className = 'cartoon-button answer-option';
+                button.textContent = answer;
+                button.onclick = () => submitAnswer(i, questionData.correct);
+                answersContainer.appendChild(button);
+            });
+            
+            startQuestionTimer(roomData);
+        }
+
+        function startQuestionTimer(roomData) {
+            if (timerInterval) clearInterval(timerInterval);
+            let timeLeft = 30;
+            const timerEl = document.getElementById('question-timer');
+            timerEl.textContent = timeLeft;
+
+            timerInterval = setInterval(async () => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    // Only host moves to next round to avoid race conditions
+                    if (userId === roomData.hostId) {
+                        await endRound();
+                    }
+                }
+            }, 1000);
+        }
+
+        async function submitAnswer(selectedIndex, correctIndex) {
+            if (timerInterval) clearInterval(timerInterval);
+            const isCorrect = selectedIndex === correctIndex;
+            const scoreToAdd = isCorrect ? 10 : 0;
+
+            const roomRef = doc(db, "rooms", currentRoomId);
+            const roomSnap = await getDoc(roomRef);
+            const roomData = roomSnap.data();
+            
+            const updatedPlayers = roomData.players.map(p => {
+                if (p.userId === userId && !p.hasAnswered) { // Ensure score is added only once
+                    return { ...p, score: p.score + scoreToAdd, hasAnswered: true };
+                }
+                return p;
+            });
+
+            await updateDoc(roomRef, { players: updatedPlayers });
+
+            // Check if all players have answered
+            const allAnswered = updatedPlayers.every(p => p.hasAnswered);
+            if (allAnswered && userId === roomData.hostId) {
+                await endRound();
+            }
+        }
+        
+        async function endRound() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            const roomRef = doc(db, "rooms", currentRoomId);
+            const roomSnap = await getDoc(roomRef);
+            const roomData = roomSnap.data();
+
+            if (roomData.currentRound >= 10) {
+                // Game over
+                await updateDoc(roomRef, { gameState: 'finished' });
+            } else {
+                // Next round
+                await updateDoc(roomRef, {
+                    gameState: 'selecting',
+                    currentRound: roomData.currentRound + 1
+                });
+            }
+        }
+        
+        function renderFinalScores(roomData) {
+            const scoresContainer = document.getElementById('final-scores');
+            scoresContainer.innerHTML = '';
+            const sortedPlayers = [...roomData.players].sort((a, b) => b.score - a.score);
+            
+            sortedPlayers.forEach((p, index) => {
+                const scoreDiv = document.createElement('div');
+                scoreDiv.className = 'flex justify-between items-center p-3 bg-blue-800 rounded-lg text-xl';
+                scoreDiv.innerHTML = `
+                    <span>${index + 1}. ${p.name} ${p.character}</span>
+                    <span class="font-bold text-yellow-400">${p.score}</span>
+                `;
+                scoresContainer.appendChild(scoreDiv);
+            });
+        }
+        
+        function handlePlayAgain() {
+            if (roomUnsubscribe) roomUnsubscribe();
+            window.location.search = ''; // Resets the URL to not auto-join
+        }
+
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        // --- Event Listeners ---
+        characterCards.forEach(card => card.addEventListener('click', selectCharacter));
+        createRoomBtn.addEventListener('click', handleCreateRoom);
+        joinRoomBtn.addEventListener('click', () => joinRoom(false));
+        startGameBtn.addEventListener('click', handleStartGame);
+        playAgainBtn.addEventListener('click', handlePlayAgain);
+
+        // --- Initialize App ---
+        window.onload = initialize;
+
     </script>
 </body>
 </html>
-
